@@ -1,19 +1,32 @@
-# Environments
-venv/
-env/
-.env
-
-# Python Cache
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
+*.pyo
 
-# Large Data & Models (Let users generate these themselves)
-models/*.pkl
-models/*.onnx
-data/*.csv
-data/*.parquet
+# Virtual environments
+venv/
+.env/
 
-# OS generated files
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Model files
+*.onnx
+*.pkl
+*.joblib
+
+# Generated outputs
+outputs/
+
+# Logs
+*.log
+
+# OS files
 .DS_Store
 Thumbs.db

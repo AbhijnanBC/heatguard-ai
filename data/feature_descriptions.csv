@@ -1,0 +1,27 @@
+column,group,description,unit,range,dtype,sample_mean,sample_std
+age,Personal,Worker age in years,years,18–60,float64,38.788,12.493
+bmi,Personal,Body Mass Index (weight/height²),kg/m²,17–40,float64,24.546,3.890
+acclimatisation_days,Personal,Days of heat acclimatisation,days,0–90,float64,28.888,18.189
+ambient_temp,Environmental,Current ambient temperature (noisy),°C,28–48,float64,37.501,5.870
+humidity,Environmental,Relative humidity (noisy),%,25–95,float64,65.316,15.202
+wind_speed,Environmental,Wind speed (noisy),m/s,0–8,float64,1.526,1.517
+solar_radiation,Environmental,Solar radiation flux,W/m²,50–1000,float64,522.715,272.584
+ambient_temp_t15,Environmental-Lag,Ambient temp 15 min ago,°C,—,float64,36.710,5.907
+ambient_temp_t30,Environmental-Lag,Ambient temp 30 min ago,°C,—,float64,35.988,5.926
+humidity_t15,Environmental-Lag,Humidity 15 min ago,%,—,float64,64.814,15.424
+humidity_t30,Environmental-Lag,Humidity 30 min ago,%,—,float64,64.313,15.384
+metabolic_rate,Work,Metabolic work rate (ISO 8996),W,100–400,float64,242.768,87.943
+work_hours,Work,Hours elapsed in current shift,hours,0–8,float64,3.867,2.261
+hydration_level,Work,"Self-reported hydration (1=very low, 5=full)",ordinal,1–5,float64,2.862,1.206
+heart_rate,Physiological,"Current heart rate (noisy, estimated)",bpm,50–185,float64,114.139,14.917
+heart_rate_t15,Physiological-Lag,Heart rate 15 min ago,bpm,—,float64,112.196,14.877
+heart_rate_t30,Physiological-Lag,Heart rate 30 min ago,bpm,—,float64,110.178,14.710
+sweat_rate,Physiological,PHS-predicted sweat rate,g/hr,0–1200,float64,79.907,26.524
+core_temp_tre,PHS-Output,ISO 7933 predicted rectal temperature,°C,36–39.5,float64,38.554,0.586
+heat_index,Derived,Rothfuss & Terjung combined heat index,°C,25–70,float64,53.804,15.236
+hr_delta_t15,Derived,HR change: current minus t-15min (trajectory),bpm,—,float64,1.944,2.924
+hr_delta_t30,Derived,HR change: current minus t-30min (trajectory),bpm,—,float64,3.961,3.703
+temp_delta_t15,Derived,Ambient temp change: current minus t-15min,°C,—,float64,0.791,0.647
+temp_humidity_product,Derived,Combined temp×humidity heat load term,—,—,float64,24.609,7.221
+risk_label_str,Target,Risk class string (Low/Moderate/High/Critical),—,4 classes,str,—,—
+risk_label_num,Target,Risk class integer (0/1/2/3),—,0–3,int64,2.387,0.908
