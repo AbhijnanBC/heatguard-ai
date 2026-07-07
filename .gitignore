@@ -1,0 +1,19 @@
+# Environments
+venv/
+env/
+.env
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Large Data & Models (Let users generate these themselves)
+models/*.pkl
+models/*.onnx
+data/*.csv
+data/*.parquet
+
+# OS generated files
+.DS_Store
+Thumbs.db

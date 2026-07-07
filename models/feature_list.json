@@ -1,0 +1,39 @@
+{
+  "features": [
+    "age",
+    "bmi",
+    "acclimatisation_days",
+    "ambient_temp",
+    "humidity",
+    "wind_speed",
+    "solar_radiation",
+    "ambient_temp_t15",
+    "ambient_temp_t30",
+    "humidity_t15",
+    "humidity_t30",
+    "metabolic_rate",
+    "work_hours",
+    "hydration_level",
+    "heart_rate",
+    "heart_rate_t15",
+    "heart_rate_t30",
+    "sweat_rate",
+    "core_temp_tre",
+    "heat_index",
+    "hr_delta_t15",
+    "hr_delta_t30",
+    "temp_delta_t15",
+    "temp_humidity_product",
+    "vulnerability_score",
+    "cluster_id",
+    "adaptive_alert_multiplier"
+  ],
+  "target": "risk_label_num",
+  "n_classes": 4,
+  "risk_labels": [
+    "Low",
+    "Moderate",
+    "High",
+    "Critical"
+  ]
+}

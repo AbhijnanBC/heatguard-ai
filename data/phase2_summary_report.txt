@@ -1,0 +1,50 @@
+=================================================================
+PHASE 2 — K-MEANS WORKER PROFILING — SUMMARY REPORT
+=================================================================
+Optimal k selected     : 3
+Workers clustered      : 5,647
+Clustering features    : age, bmi, acclimatisation_days, metabolic_rate, hydration_level, hr_delta_t30
+Elapsed time           : 3.87s
+
+CLUSTER QUALITY METRICS AT k=3
+--------------------------------------------------
+  Inertia (WCSS)       : 24918.08
+  Silhouette Score     : 0.1737
+  Davies-Bouldin Index : 1.7832
+  Calinski-Harabasz    : 1015.2
+
+CLUSTER PROFILES
+--------------------------------------------------
+
+  Cluster 2 — Acclimatised Veteran
+    Workers           : 2,662 (47.1%)
+    Mean vulnerability: -0.277
+    age                      : μ=37.54  σ=12.48
+    bmi                      : μ=23.93  σ=3.83
+    acclimatisation_days     : μ=37.10  σ=20.39
+    metabolic_rate           : μ=172.14  σ=47.46
+    hydration_level          : μ=3.17  σ=1.18
+    hr_delta_t30             : μ=3.43  σ=4.22
+    Risk distribution : Low=14.4%  Moderate=14.0%  High=18.4%  Critical=53.2%
+
+  Cluster 1 — Young High-Exertion
+    Workers           : 2,726 (48.3%)
+    Mean vulnerability: 0.426
+    age                      : μ=39.99  σ=12.38
+    bmi                      : μ=24.94  σ=3.96
+    acclimatisation_days     : μ=22.87  σ=13.30
+    metabolic_rate           : μ=308.21  σ=59.36
+    hydration_level          : μ=2.58  σ=1.14
+    hr_delta_t30             : μ=6.79  σ=3.83
+    Risk distribution : Low=0.0%  Moderate=0.6%  High=4.8%  Critical=94.6%
+
+  Cluster 0 — High-BMI Novice
+    Workers           : 259 (4.6%)
+    Mean vulnerability: 1.429
+    age                      : μ=40.45  σ=12.34
+    bmi                      : μ=24.87  σ=3.56
+    acclimatisation_days     : μ=28.57  σ=18.57
+    metabolic_rate           : μ=257.44  σ=83.37
+    hydration_level          : μ=2.83  σ=1.21
+    hr_delta_t30             : μ=46.71  σ=12.72
+    Risk distribution : Low=6.9%  Moderate=3.5%  High=18.1%  Critical=71.4%

@@ -1,0 +1,64 @@
+{
+  "file_heatstroke_model.pkl": {
+    "pass": true,
+    "detail": "Present"
+  },
+  "file_kmeans_model.pkl": {
+    "pass": true,
+    "detail": "Present"
+  },
+  "file_cluster_scaler.pkl": {
+    "pass": true,
+    "detail": "Present"
+  },
+  "file_feature_list.json": {
+    "pass": true,
+    "detail": "Present"
+  },
+  "file_best_params.json": {
+    "pass": true,
+    "detail": "Present"
+  },
+  "file_phase3_metrics.json": {
+    "pass": true,
+    "detail": "Present"
+  },
+  "feature_count_match": {
+    "pass": true,
+    "detail": "Model expects 27, feature_list has 27"
+  },
+  "probability_validity": {
+    "pass": true,
+    "detail": "Probs sum to 1.000000"
+  },
+  "recall_high": {
+    "pass": true,
+    "detail": "Recall(High) = 0.94"
+  },
+  "recall_critical": {
+    "pass": true,
+    "detail": "Recall(Critical) = 0.9825"
+  },
+  "f1_macro_minimum": {
+    "pass": true,
+    "detail": "F1-macro = 0.9533"
+  },
+  "roc_auc_minimum": {
+    "pass": true,
+    "detail": "ROC-AUC = 0.9982"
+  },
+  "inference_speed_ms": {
+    "pass": true,
+    "detail": "Average 0.41ms per call"
+  },
+  "danger_worker_predicts_critical": {
+    "pass": true,
+    "detail": "Predicted class = Critical"
+  },
+  "_summary": {
+    "all_pass": true,
+    "n_pass": 14,
+    "n_total": 14,
+    "timestamp": "2026-04-02 10:14 UTC"
+  }
+}

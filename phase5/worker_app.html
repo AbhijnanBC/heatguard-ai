@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>HeatGuard — Worker Heat Safety App</title>
+<style>
+  /* ── Design tokens ── */
+  :root {
+    --green:  #27AE60; --green-bg:  #D5F5E3; --green-dark:  #1E8449;
+    --yellow: #F39C12; --yellow-bg: #FEF9E7; --yellow-dark: #B7770D;
+    --orange: #E67E22; --orange-bg: #FDEBD0; --orange-dark: #A04000;
+    --red:    #C0392B; --red-bg:    #FADBD8; --red-dark:    #922B21;
+    --bg:     #F4F6F9; --card:      #FFFFFF;
+    --text:   #1A1A2E; --muted:     #6C757D;
+    --border: #E2E8F0; --radius:    16px; --radius-sm: 10px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --font:   'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  /* ── Reset ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+  }
+
+  /* ── Phone shell ── */
+  .phone {
+    width: 390px;
+    min-height: 844px;
+    background: var(--card);
+    border-radius: 44px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.18), inset 0 0 0 2px #E0E0E0;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Status bar ── */
+  .status-bar {
+    background: #1A1A2E;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 24px 8px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+
+  /* ── Screens ── */
+  .screen { display: none; flex-direction: column; flex: 1; overflow-y: auto; }
+  .screen.active { display: flex; }
+
+  /* ── Onboarding screen ── */
+  .onboard-header {
+    background: linear-gradient(145deg, #1A1A2E 0%, #16213E 100%);
+    color: #fff;
+    padding: 40px 28px 32px;
+    text-align: center;
+  }
+  .onboard-logo { font-size: 48px; margin-bottom: 12px; }
+  .onboard-title { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+  .onboard-sub { font-size: 14px; opacity: 0.7; line-height: 1.5; }
+  .onboard-form { padding: 28px; flex: 1; }
+  .form-group { margin-bottom: 20px; }
+  .form-label {
+    display: block; font-size: 13px; font-weight: 600;
+    color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .form-control {
+    width: 100%; padding: 13px 16px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 16px; font-family: var(--font);
+    color: var(--text); background: #FAFBFC; transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  .form-control:focus { outline: none; border-color: #1A1A2E; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .hydration-row { display: flex; gap: 8px; justify-content: space-between; }
+  .hydration-btn {
+    flex: 1; padding: 12px 4px; border: 2px solid var(--border);
+    border-radius: var(--radius-sm); background: #FAFBFC; cursor: pointer;
+    font-size: 20px; text-align: center; transition: all 0.2s;
+  }
+  .hydration-btn.selected { border-color: #1A1A2E; background: #EEF2FF; }
+  .hydration-label { font-size: 10px; display: block; margin-top: 4px; color: var(--muted); }
+  .btn-primary {
+    width: 100%; padding: 16px; background: #1A1A2E; color: #fff;
+    border: none; border-radius: var(--radius-sm); font-size: 16px;
+    font-weight: 700; cursor: pointer; letter-spacing: 0.3px;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+  .btn-outline {
+    width: 100%; padding: 14px; background: transparent; color: #1A1A2E;
+    border: 2px solid #1A1A2E; border-radius: var(--radius-sm); font-size: 15px;
+    font-weight: 600; cursor: pointer; margin-top: 10px; transition: all 0.2s;
+  }
+  .btn-outline:active { background: #EEF2FF; }
+
+  /* ── Dashboard screen ── */
+  .dash-header {
+    background: #1A1A2E;
+    color: #fff;
+    padding: 20px 24px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .dash-greeting { font-size: 13px; opacity: 0.7; margin-bottom: 2px; }
+  .dash-name { font-size: 18px; font-weight: 700; }
+  .dash-persona-badge {
+    background: rgba(255,255,255,0.15);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .dash-body { padding: 20px; flex: 1; }
+
+  /* ── Risk dial ── */
+  .risk-card {
+    border-radius: var(--radius);
+    padding: 28px 24px 24px;
+    text-align: center;
+    margin-bottom: 16px;
+    transition: background 0.5s;
+    position: relative;
+    overflow: hidden;
+  }
+  .risk-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: inherit;
+    filter: brightness(1.04);
+    z-index: 0;
+  }
+  .risk-card > * { position: relative; z-index: 1; }
+  .risk-emoji-big { font-size: 56px; margin-bottom: 10px; display: block; }
+  .risk-class-label { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+  .risk-class-sub { font-size: 14px; opacity: 0.85; line-height: 1.5; }
+  .risk-score-row {
+    display: flex; justify-content: center; align-items: center;
+    gap: 6px; margin-top: 16px; margin-bottom: 8px;
+  }
+  .risk-score-label { font-size: 13px; opacity: 0.75; }
+  .risk-score-value { font-size: 36px; font-weight: 800; }
+  .risk-score-max { font-size: 16px; opacity: 0.6; }
+
+  /* ── Progress bar (risk level) ── */
+  .risk-bar-wrap { height: 8px; background: rgba(0,0,0,0.12); border-radius: 4px; margin: 8px 0 16px; }
+  .risk-bar { height: 100%; border-radius: 4px; background: rgba(0,0,0,0.35); transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+
+  /* ── Alert banner ── */
+  .alert-banner {
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    transition: all 0.4s;
+  }
+  .alert-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+  .alert-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .alert-body { font-size: 13px; line-height: 1.5; }
+
+  /* ── Metric cards ── */
+  .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .metric-card {
+    background: #F8FAFC;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 14px 12px;
+  }
+  .metric-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+  .metric-value { font-size: 22px; font-weight: 700; line-height: 1.1; }
+  .metric-unit { font-size: 12px; color: var(--muted); margin-left: 2px; }
+  .metric-trend { font-size: 11px; margin-top: 3px; }
+  .trend-up { color: var(--red); }
+  .trend-stable { color: var(--muted); }
+  .trend-down { color: var(--green); }
+
+  /* ── Time to peak ── */
+  .ttp-card {
+    background: #1A1A2E;
+    color: #fff;
+    border-radius: var(--radius-sm);
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .ttp-label { font-size: 12px; opacity: 0.7; margin-bottom: 3px; }
+  .ttp-value { font-size: 28px; font-weight: 800; }
+  .ttp-unit { font-size: 13px; opacity: 0.7; }
+  .ttp-icon { font-size: 32px; }
+
+  /* ── Risk factors ── */
+  .section-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+  .factor-card {
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-left: 4px solid;
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+  .factor-card.critical { border-left-color: var(--red); }
+  .factor-card.high { border-left-color: var(--orange); }
+  .factor-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+  .factor-value { font-size: 15px; font-weight: 800; margin-bottom: 3px; }
+  .factor-desc { font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+  /* ── Probability bar chart ── */
+  .prob-section { margin-bottom: 16px; }
+  .prob-row { margin-bottom: 8px; }
+  .prob-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .prob-label { font-size: 13px; font-weight: 600; }
+  .prob-pct { font-size: 13px; color: var(--muted); }
+  .prob-bar-bg { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .prob-bar { height: 100%; border-radius: 4px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+
+  /* ── Profile screen ── */
+  .profile-header {
+    background: linear-gradient(145deg, #1A1A2E 0%, #2C3E7E 100%);
+    color: #fff;
+    padding: 30px 24px 24px;
+    text-align: center;
+  }
+  .profile-avatar {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; margin: 0 auto 14px;
+  }
+  .profile-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .profile-persona-chip {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .profile-body { padding: 20px; }
+  .profile-card {
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+  .profile-card-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
+  .profile-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: center; }
+  .profile-row:last-child { border-bottom: none; }
+  .profile-key { font-size: 13px; color: var(--muted); }
+  .profile-val { font-size: 14px; font-weight: 600; }
+  .threshold-visual {
+    background: #F8FAFC;
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    margin-top: 10px;
+  }
+  .thresh-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .thresh-key { font-size: 12px; color: var(--muted); }
+  .thresh-val { font-size: 13px; font-weight: 700; }
+
+  /* ── History screen ── */
+  .history-body { padding: 20px; }
+  .history-date { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px; }
+  .history-entry {
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .history-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .history-time { font-size: 12px; color: var(--muted); min-width: 44px; }
+  .history-class { font-size: 14px; font-weight: 700; }
+  .history-score { font-size: 12px; color: var(--muted); margin-left: auto; }
+  .history-alert-tag {
+    font-size: 10px; font-weight: 700; padding: 2px 8px;
+    border-radius: 10px; background: var(--red-bg); color: var(--red);
+    margin-left: 6px;
+  }
+
+  /* ── Supervisor screen ── */
+  .sup-header {
+    background: linear-gradient(145deg, #1A1A2E, #243B55);
+    color: #fff; padding: 20px 24px 18px;
+  }
+  .sup-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .sup-stat {
+    background: rgba(255,255,255,0.12);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    text-align: center;
+  }
+  .sup-stat-num { font-size: 24px; font-weight: 800; }
+  .sup-stat-label { font-size: 10px; opacity: 0.7; margin-top: 2px; }
+  .sup-body { padding: 16px; }
+  .worker-card {
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .worker-risk-dot { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .worker-name { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+  .worker-meta { font-size: 12px; color: var(--muted); }
+  .worker-score { margin-left: auto; text-align: right; flex-shrink: 0; }
+  .worker-score-num { font-size: 20px; font-weight: 800; }
+  .worker-score-label { font-size: 10px; color: var(--muted); }
+  .alert-badge { background: var(--red); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-top: 4px; display: inline-block; }
+
+  /* ── Bottom nav ── */
+  .bottom-nav {
+    display: flex;
+    border-top: 1px solid var(--border);
+    background: #fff;
+    padding: 8px 0 12px;
+    flex-shrink: 0;
+  }
+  .nav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    padding: 6px 0; cursor: pointer; gap: 3px; transition: color 0.15s;
+    border: none; background: none; color: var(--muted);
+  }
+  .nav-item.active { color: #1A1A2E; }
+  .nav-icon { font-size: 22px; }
+  .nav-label { font-size: 10px; font-weight: 600; }
+
+  /* ── Demo controls (outside phone) ── */
+  .demo-controls {
+    margin-left: 28px;
+    width: 280px;
+    align-self: flex-start;
+    position: sticky;
+    top: 20px;
+  }
+  .demo-title { font-size: 20px; font-weight: 800; color: #1A1A2E; margin-bottom: 6px; }
+  .demo-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
+  .scenario-btn {
+    width: 100%; padding: 14px 16px; border-radius: var(--radius-sm);
+    border: 2px solid var(--border); background: #fff; cursor: pointer;
+    text-align: left; margin-bottom: 10px; transition: all 0.2s;
+    font-family: var(--font);
+  }
+  .scenario-btn:hover { border-color: #1A1A2E; transform: translateX(4px); }
+  .scenario-btn.active { border-color: #1A1A2E; background: #EEF2FF; }
+  .scenario-name { font-size: 14px; font-weight: 700; color: #1A1A2E; margin-bottom: 3px; }
+  .scenario-desc { font-size: 12px; color: var(--muted); line-height: 1.4; }
+  .scenario-badge {
+    display: inline-block; padding: 2px 10px; border-radius: 10px;
+    font-size: 10px; font-weight: 700; margin-top: 6px;
+  }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  .demo-info-card {
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .demo-info-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; }
+  .demo-info-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .demo-info-key { font-size: 12px; color: var(--muted); }
+  .demo-info-val { font-size: 12px; font-weight: 700; }
+
+  /* ── Outer layout ── */
+  .outer { display: flex; justify-content: center; padding: 20px; min-height: 100vh; align-items: flex-start; max-width: 1100px; margin: 0 auto; width: 100%; }
+
+  /* ── Animations ── */
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(192,57,43,0.4); }
+    70% { box-shadow: 0 0 0 18px rgba(192,57,43,0); }
+    100% { box-shadow: 0 0 0 0 rgba(192,57,43,0); }
+  }
+  .pulse { animation: pulse-ring 1.8s infinite; }
+  @keyframes fadeSlide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeSlide 0.4s ease-out; }
+
+  /* ── Responsive ── */
+  @media (max-width: 760px) {
+    .demo-controls { display: none; }
+    .outer { padding: 0; }
+    .phone { border-radius: 0; min-height: 100vh; width: 100%; box-shadow: none; }
+    body { padding: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="outer">
+
+<!-- ════════════════════════════════ PHONE ════════════════════════════════ -->
+<div class="phone">
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span>9:41</span>
+    <span>☀️ Chennai, TN</span>
+    <span>📶 🔋 87%</span>
+  </div>
+
+  <!-- ═══════════ SCREEN 1: ONBOARDING ═══════════ -->
+  <div class="screen active" id="screen-onboard">
+    <div class="onboard-header">
+      <div class="onboard-logo">🌡️</div>
+      <div class="onboard-title">HeatGuard</div>
+      <div class="onboard-sub">AI-powered heat safety for outdoor workers.<br>Personalised alerts. Zero cost.</div>
+    </div>
+    <div class="onboard-form">
+      <div class="form-group">
+        <label class="form-label">Your name</label>
+        <input class="form-control" type="text" id="inp-name" value="Rajan Kumar" placeholder="Enter your name">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Age (years)</label>
+          <input class="form-control" type="number" id="inp-age" value="48" min="15" max="75">
+        </div>
+        <div class="form-group">
+          <label class="form-label">BMI (kg/m²)</label>
+          <input class="form-control" type="number" id="inp-bmi" value="31" step="0.1" min="15" max="45">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Days working outdoors this season</label>
+        <input class="form-control" type="number" id="inp-accl" value="6" min="0" max="120">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Current hydration 💧</label>
+        <div class="hydration-row" id="hydration-select">
+          <div class="hydration-btn" data-val="1" onclick="selectHydration(1)">💧<span class="hydration-label">Very low</span></div>
+          <div class="hydration-btn selected" data-val="2" onclick="selectHydration(2)">💧💧<span class="hydration-label">Low</span></div>
+          <div class="hydration-btn" data-val="3" onclick="selectHydration(3)">💧💧💧<span class="hydration-label">OK</span></div>
+          <div class="hydration-btn" data-val="4" onclick="selectHydration(4)">💧💧💧💧<span class="hydration-label">Good</span></div>
+          <div class="hydration-btn" data-val="5" onclick="selectHydration(5)">💧💧💧💧💧<span class="hydration-label">Full</span></div>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="completeOnboarding()">Set Up My Profile →</button>
+      <button class="btn-outline" onclick="loadDemoWorker('danger')">📱 Load Demo (Danger Worker)</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ SCREEN 2: DASHBOARD ═══════════ -->
+  <div class="screen" id="screen-dashboard">
+    <div class="dash-header">
+      <div>
+        <div class="dash-greeting">Good afternoon,</div>
+        <div class="dash-name" id="dash-name">Rajan Kumar</div>
+      </div>
+      <div class="dash-persona-badge" id="dash-persona">High-BMI Novice</div>
+    </div>
+    <div class="dash-body">
+
+      <!-- Risk card -->
+      <div class="risk-card" id="risk-card">
+        <span class="risk-emoji-big" id="risk-emoji">🔴</span>
+        <div class="risk-class-label" id="risk-class">CRITICAL</div>
+        <div class="risk-class-sub" id="risk-message">CRITICAL — Imminent collapse risk.</div>
+        <div class="risk-score-row">
+          <span class="risk-score-label">Risk score</span>
+          <span class="risk-score-value" id="risk-score">100</span>
+          <span class="risk-score-max">/100</span>
+        </div>
+        <div class="risk-bar-wrap">
+          <div class="risk-bar" id="risk-bar" style="width:100%"></div>
+        </div>
+      </div>
+
+      <!-- Alert banner -->
+      <div class="alert-banner" id="alert-banner">
+        <span class="alert-icon" id="alert-icon">🚨</span>
+        <div>
+          <div class="alert-title" id="alert-title">Action Required Now</div>
+          <div class="alert-body" id="alert-body">STOP WORK IMMEDIATELY. Seek shade and cool water. Call supervisor.</div>
+        </div>
+      </div>
+
+      <!-- Metrics grid -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">Heart Rate</div>
+          <div class="metric-value" id="m-hr">138<span class="metric-unit">bpm</span></div>
+          <div class="metric-trend trend-up" id="m-hr-trend">↑ +16 bpm in 30min</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Core Temp (est.)</div>
+          <div class="metric-value" id="m-tre">39.5<span class="metric-unit">°C</span></div>
+          <div class="metric-trend trend-up" id="m-tre-trend">↑ Above danger limit</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Heat Index</div>
+          <div class="metric-value" id="m-hi">70.0<span class="metric-unit">°C</span></div>
+          <div class="metric-trend trend-up">↑ Extreme</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Sweat Rate</div>
+          <div class="metric-value" id="m-sr">114.9<span class="metric-unit">g/hr</span></div>
+          <div class="metric-trend trend-up">↑ Very high</div>
+        </div>
+      </div>
+
+      <!-- Time to peak -->
+      <div class="ttp-card" id="ttp-card">
+        <div>
+          <div class="ttp-label">⏱ ESTIMATED TIME UNTIL PEAK RISK</div>
+          <div><span class="ttp-value" id="ttp-value">3</span> <span class="ttp-unit">minutes</span></div>
+        </div>
+        <span class="ttp-icon" id="ttp-icon">⚠️</span>
+      </div>
+
+      <!-- Probability breakdown -->
+      <div class="prob-section">
+        <div class="section-title">Risk class probabilities</div>
+        <div id="prob-bars"></div>
+      </div>
+
+      <!-- Top risk factors -->
+      <div id="factors-section">
+        <div class="section-title">Why this alert?</div>
+        <div id="factors-list"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════ SCREEN 3: PROFILE ═══════════ -->
+  <div class="screen" id="screen-profile">
+    <div class="profile-header">
+      <div class="profile-avatar">👷</div>
+      <div class="profile-name" id="prof-name">Rajan Kumar</div>
+      <div class="profile-persona-chip" id="prof-persona">High-BMI Novice</div>
+    </div>
+    <div class="profile-body">
+
+      <div class="profile-card">
+        <div class="profile-card-title">Personal Details</div>
+        <div class="profile-row"><span class="profile-key">Age</span><span class="profile-val" id="prof-age">48 years</span></div>
+        <div class="profile-row"><span class="profile-key">BMI</span><span class="profile-val" id="prof-bmi">31.0 kg/m²</span></div>
+        <div class="profile-row"><span class="profile-key">Acclimatisation</span><span class="profile-val" id="prof-accl">6 days</span></div>
+        <div class="profile-row"><span class="profile-key">Cluster ID</span><span class="profile-val" id="prof-cluster">0</span></div>
+        <div class="profile-row"><span class="profile-key">Vulnerability score</span><span class="profile-val" id="prof-vuln">1.58</span></div>
+      </div>
+
+      <div class="profile-card">
+        <div class="profile-card-title">Personalised Alert Threshold</div>
+        <div class="threshold-visual">
+          <div class="thresh-row"><span class="thresh-key">Base threshold</span><span class="thresh-val">50%</span></div>
+          <div class="thresh-row"><span class="thresh-key">Adaptive multiplier</span><span class="thresh-val" id="prof-mult">×0.70</span></div>
+          <div class="thresh-row"><span class="thresh-key">Your effective threshold</span><span class="thresh-val" id="prof-thresh" style="color:var(--red)">35%</span></div>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5" id="prof-thresh-note">
+          Your alert fires <strong>earlier than the baseline</strong> because your worker profile shows lower heat tolerance. This gives you more time to act safely.
+        </p>
+      </div>
+
+      <div class="profile-card">
+        <div class="profile-card-title">Privacy & Data</div>
+        <div class="profile-row"><span class="profile-key">Data storage</span><span class="profile-val">On device only</span></div>
+        <div class="profile-row"><span class="profile-key">GPS tracking</span><span class="profile-val">Not stored</span></div>
+        <div class="profile-row"><span class="profile-key">Employer access</span><span class="profile-val" style="color:var(--green)">Never</span></div>
+        <div class="profile-row"><span class="profile-key">Cloud sync</span><span class="profile-val">Opt-in only</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════ SCREEN 4: HISTORY ═══════════ -->
+  <div class="screen" id="screen-history">
+    <div class="dash-header" style="flex-direction:column;align-items:flex-start;gap:2px">
+      <div style="font-size:18px;font-weight:700">Reading History</div>
+      <div style="font-size:12px;opacity:0.7">Last 24 hours · auto-updated every 15 min</div>
+    </div>
+    <div class="history-body">
+      <div class="history-date">Today — 30 Mar</div>
+      <div class="history-entry"><div class="history-dot" style="background:var(--red)"></div><span class="history-time">14:32</span><div><div class="history-class" style="color:var(--red)">Critical <span class="history-alert-tag">ALERT</span></div><div style="font-size:11px;color:var(--muted)">Temp 44.5°C · HR 138 · HI 70.0</div></div><span class="history-score">100/100</span></div>
+      <div class="history-entry"><div class="history-dot" style="background:var(--orange)"></div><span class="history-time">14:17</span><div><div class="history-class" style="color:var(--orange)">High <span class="history-alert-tag">ALERT</span></div><div style="font-size:11px;color:var(--muted)">Temp 43.5°C · HR 130 · HI 67.2</div></div><span class="history-score">78/100</span></div>
+      <div class="history-entry"><div class="history-dot" style="background:var(--yellow)"></div><span class="history-time">14:02</span><div><div class="history-class" style="color:var(--yellow-dark)">Moderate</div><div style="font-size:11px;color:var(--muted)">Temp 42.8°C · HR 122 · HI 64.1</div></div><span class="history-score">42/100</span></div>
+      <div class="history-entry"><div class="history-dot" style="background:var(--green)"></div><span class="history-time">13:47</span><div><div class="history-class" style="color:var(--green)">Low</div><div style="font-size:11px;color:var(--muted)">Temp 39.2°C · HR 110 · HI 57.3</div></div><span class="history-score">12/100</span></div>
+      <div class="history-date">Yesterday — 29 Mar</div>
+      <div class="history-entry"><div class="history-dot" style="background:var(--green)"></div><span class="history-time">15:30</span><div><div class="history-class" style="color:var(--green)">Low</div><div style="font-size:11px;color:var(--muted)">Temp 36.5°C · HR 95 · HI 44.2</div></div><span class="history-score">8/100</span></div>
+      <div class="history-entry"><div class="history-dot" style="background:var(--green)"></div><span class="history-time">14:15</span><div><div class="history-class" style="color:var(--green)">Low</div><div style="font-size:11px;color:var(--muted)">Temp 35.8°C · HR 91 · HI 43.1</div></div><span class="history-score">6/100</span></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SCREEN 5: SUPERVISOR ═══════════ -->
+  <div class="screen" id="screen-supervisor">
+    <div class="sup-header">
+      <div style="font-size:18px;font-weight:700;margin-bottom:4px">Site Supervisor Dashboard</div>
+      <div style="font-size:12px;opacity:0.7">Live worker status · 4 workers monitored</div>
+      <div class="sup-stats">
+        <div class="sup-stat"><div class="sup-stat-num">4</div><div class="sup-stat-label">Workers</div></div>
+        <div class="sup-stat"><div class="sup-stat-num" style="color:#F87171">2</div><div class="sup-stat-label">Alerts</div></div>
+        <div class="sup-stat"><div class="sup-stat-num" style="color:#34D399">2</div><div class="sup-stat-label">Safe</div></div>
+      </div>
+    </div>
+    <div class="sup-body">
+      <div class="section-title" style="margin-bottom:10px">Worker Status</div>
+
+      <div class="worker-card">
+        <div class="worker-risk-dot pulse" style="background:var(--red-bg)">🔴</div>
+        <div>
+          <div class="worker-name">Rajan Kumar</div>
+          <div class="worker-meta">Site A · High-BMI Novice · 6d accl.</div>
+          <span class="alert-badge">🚨 CRITICAL ALERT</span>
+        </div>
+        <div class="worker-score"><div class="worker-score-num" style="color:var(--red)">100</div><div class="worker-score-label">risk score</div></div>
+      </div>
+
+      <div class="worker-card">
+        <div class="worker-risk-dot pulse" style="background:var(--red-bg)">🔴</div>
+        <div>
+          <div class="worker-name">Suresh Babu</div>
+          <div class="worker-meta">Site A · High-BMI Novice · 20d accl.</div>
+          <span class="alert-badge">🚨 CRITICAL ALERT</span>
+        </div>
+        <div class="worker-score"><div class="worker-score-num" style="color:var(--red)">99</div><div class="worker-score-label">risk score</div></div>
+      </div>
+
+      <div class="worker-card">
+        <div class="worker-risk-dot" style="background:var(--yellow-bg)">🟡</div>
+        <div>
+          <div class="worker-name">Meena Devi</div>
+          <div class="worker-meta">Site C · Acclimatised Veteran · 45d accl.</div>
+        </div>
+        <div class="worker-score"><div class="worker-score-num" style="color:var(--yellow-dark)">33</div><div class="worker-score-label">risk score</div></div>
+      </div>
+
+      <div class="worker-card">
+        <div class="worker-risk-dot" style="background:var(--green-bg)">🟢</div>
+        <div>
+          <div class="worker-name">Priya Sharma</div>
+          <div class="worker-meta">Site B · Acclimatised Veteran · 65d accl.</div>
+        </div>
+        <div class="worker-score"><div class="worker-score-num" style="color:var(--green)">0</div><div class="worker-score-label">risk score</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Bottom navigation -->
+  <div class="bottom-nav" id="bottom-nav">
+    <button class="nav-item active" onclick="showScreen('dashboard')" id="nav-dashboard">
+      <span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span>
+    </button>
+    <button class="nav-item" onclick="showScreen('history')" id="nav-history">
+      <span class="nav-icon">📈</span><span class="nav-label">History</span>
+    </button>
+    <button class="nav-item" onclick="showScreen('profile')" id="nav-profile">
+      <span class="nav-icon">👤</span><span class="nav-label">Profile</span>
+    </button>
+    <button class="nav-item" onclick="showScreen('supervisor')" id="nav-supervisor">
+      <span class="nav-icon">👷</span><span class="nav-label">Supervisor</span>
+    </button>
+  </div>
+
+</div><!-- end .phone -->
+
+<!-- ════════════════════════════════ DEMO CONTROLS ════════════════════════════════ -->
+<div class="demo-controls">
+  <div class="demo-title">🎮 Live Demo</div>
+  <div class="demo-sub">Click a scenario to see the app respond in real time with actual model predictions.</div>
+
+  <button class="scenario-btn" onclick="loadDemoWorker('danger')" id="btn-danger">
+    <div class="scenario-name">🔴 Danger Worker</div>
+    <div class="scenario-desc">48yo, BMI 31, 6 days acclimatised · 44.5°C · HR rising 16 bpm</div>
+    <span class="scenario-badge" style="background:var(--red-bg);color:var(--red)">Critical · Alert fires</span>
+  </button>
+
+  <button class="scenario-btn" onclick="loadDemoWorker('safe')" id="btn-safe">
+    <div class="scenario-name">🟢 Safe Worker</div>
+    <div class="scenario-desc">32yo, BMI 22.5, 65 days acclimatised · 31°C · HR stable</div>
+    <span class="scenario-badge" style="background:var(--green-bg);color:var(--green)">Low · No alert</span>
+  </button>
+
+  <button class="scenario-btn" onclick="loadDemoWorker('moderate')" id="btn-moderate">
+    <div class="scenario-name">🟡 Moderate Risk</div>
+    <div class="scenario-desc">40yo, BMI 26, 20 days acclimatised · 38°C · Borderline</div>
+    <span class="scenario-badge" style="background:var(--yellow-bg);color:var(--yellow-dark)">Moderate · Watch closely</span>
+  </button>
+
+  <button class="scenario-btn" onclick="loadDemoWorker('critical_early')" id="btn-critical_early">
+    <div class="scenario-name">⚠️ Early Warning Demo</div>
+    <div class="scenario-desc">45yo · HR trajectory: +22 bpm over 30 min → Alert 30 min before collapse</div>
+    <span class="scenario-badge" style="background:var(--red-bg);color:var(--red)">Critical · Trajectory detection</span>
+  </button>
+
+  <hr class="divider">
+
+  <div class="demo-info-card" id="demo-raw-card">
+    <div class="demo-info-title">Model Output (Live)</div>
+    <div id="demo-raw-rows">
+      <div class="demo-info-row"><span class="demo-info-key">Predicted class</span><span class="demo-info-val" id="raw-class" style="color:var(--red)">Critical</span></div>
+      <div class="demo-info-row"><span class="demo-info-key">P(Critical)</span><span class="demo-info-val" id="raw-pcrit">99.96%</span></div>
+      <div class="demo-info-row"><span class="demo-info-key">P(High)</span><span class="demo-info-val" id="raw-phigh">0.02%</span></div>
+      <div class="demo-info-row"><span class="demo-info-key">Alert threshold</span><span class="demo-info-val" id="raw-thresh">35.0%</span></div>
+      <div class="demo-info-row"><span class="demo-info-key">Alert fires?</span><span class="demo-info-val" id="raw-alert" style="color:var(--red)">✓ YES</span></div>
+      <div class="demo-info-row"><span class="demo-info-key">Persona</span><span class="demo-info-val" id="raw-persona">High-BMI Novice</span></div>
+      <div class="demo-info-row"><span class="demo-info-key">Vuln score</span><span class="demo-info-val" id="raw-vuln">1.5792</span></div>
+    </div>
+  </div>
+
+  <div style="font-size:11px;color:var(--muted);line-height:1.6;background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px">
+    <strong>Model:</strong> XGBoost · 27 features<br>
+    <strong>F1-macro:</strong> 0.9772 · <strong>AUC:</strong> 0.9999<br>
+    <strong>Recall(High):</strong> 1.00 · <strong>Recall(Critical):</strong> 0.996<br>
+    <strong>Training data:</strong> 5,450 PHS synthetic workers<br>
+    <strong>Clustering:</strong> K-Means k=2 (Phase 2)
+  </div>
+</div><!-- end .demo-controls -->
+
+</div><!-- end .outer -->
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// SCENARIO DATA (real model outputs from Phase 3 XGBoost)
+// ══════════════════════════════════════════════════════════════
+const SCENARIOS = {
+  danger: {
+    workerName:'Rajan Kumar', age:48, bmi:31, accl:6, hydration:1,
+    prediction:{
+      predicted_class:'Critical', risk_score:100.0, alert_fires:true,
+      threshold_used:0.35, adaptive_alert_multiplier:0.7,
+      cluster_id:0, persona_name:'High-BMI Novice', vulnerability_score:1.5792,
+      core_temp_estimate:39.5, heat_index:70.0, sweat_rate_estimate:114.9,
+      hr_trajectory:16.0, time_to_peak_minutes:3,
+      risk_color:'#C0392B', risk_emoji:'🔴',
+      risk_message:'CRITICAL — Imminent collapse risk.',
+      risk_action:'STOP WORK IMMEDIATELY. Seek shade and cool water. Call supervisor.',
+      probabilities:{Low:0.0001,Moderate:0.0001,High:0.0002,Critical:0.9996},
+      top_risk_factors:[
+        {feature:'Core temperature',value:'39.5°C',severity:'critical',description:'Predicted body temp has crossed the danger threshold.'},
+        {feature:'Rising heart rate',value:'+16.0 bpm over 30 min',severity:'critical',description:'Rapid HR increase signals accelerating heat strain.'},
+        {feature:'Heat index',value:'70.0°C',severity:'critical',description:'Combined heat + humidity is creating extreme conditions.'}
+      ]
+    }
+  },
+  safe: {
+    workerName:'Priya Sharma', age:32, bmi:22.5, accl:65, hydration:4,
+    prediction:{
+      predicted_class:'Low', risk_score:0.1, alert_fires:false,
+      threshold_used:0.6, adaptive_alert_multiplier:1.2,
+      cluster_id:1, persona_name:'Acclimatised Veteran', vulnerability_score:-0.7931,
+      core_temp_estimate:37.03, heat_index:31.7, sweat_rate_estimate:52.3,
+      hr_trajectory:3.0, time_to_peak_minutes:61,
+      risk_color:'#27AE60', risk_emoji:'🟢',
+      risk_message:'Heat stress is low. Continue normal work.',
+      risk_action:'Stay hydrated. Monitor conditions.',
+      probabilities:{Low:0.9988,Moderate:0.0008,High:0.0002,Critical:0.0002},
+      top_risk_factors:[]
+    }
+  },
+  moderate: {
+    workerName:'Suresh Babu', age:40, bmi:26, accl:20, hydration:3,
+    prediction:{
+      predicted_class:'Critical', risk_score:99.9, alert_fires:true,
+      threshold_used:0.4, adaptive_alert_multiplier:0.8,
+      cluster_id:0, persona_name:'High-BMI Novice', vulnerability_score:0.3,
+      core_temp_estimate:38.9, heat_index:55.4, sweat_rate_estimate:81.4,
+      hr_trajectory:8.0, time_to_peak_minutes:5,
+      risk_color:'#E67E22', risk_emoji:'🟠',
+      risk_message:'Significant heat strain — action required now.',
+      risk_action:'Stop work. Move to shade. Drink 500ml water immediately.',
+      probabilities:{Low:0.0002,Moderate:0.0002,High:0.0009,Critical:0.9987},
+      top_risk_factors:[
+        {feature:'Core temperature',value:'38.9°C',severity:'high',description:'Body temperature significantly elevated.'},
+        {feature:'Rising heart rate',value:'+8.0 bpm over 30 min',severity:'high',description:'Heart rate is rising — monitor closely.'},
+        {feature:'Heat index',value:'55.4°C',severity:'critical',description:'Combined heat + humidity is creating extreme conditions.'}
+      ]
+    }
+  },
+  critical_early: {
+    workerName:'Meena Devi', age:45, bmi:28, accl:10, hydration:2,
+    prediction:{
+      predicted_class:'Critical', risk_score:100.0, alert_fires:true,
+      threshold_used:0.37, adaptive_alert_multiplier:0.73,
+      cluster_id:0, persona_name:'High-BMI Novice', vulnerability_score:0.72,
+      core_temp_estimate:39.5, heat_index:70.0, sweat_rate_estimate:104.8,
+      hr_trajectory:22.0, time_to_peak_minutes:3,
+      risk_color:'#C0392B', risk_emoji:'🔴',
+      risk_message:'CRITICAL — Imminent collapse risk.',
+      risk_action:'STOP WORK IMMEDIATELY. Seek shade and cool water. Call supervisor.',
+      probabilities:{Low:0.0001,Moderate:0.0001,High:0.0002,Critical:0.9996},
+      top_risk_factors:[
+        {feature:'Core temperature',value:'39.5°C',severity:'critical',description:'Predicted body temp has crossed the danger threshold.'},
+        {feature:'Rising heart rate',value:'+22.0 bpm over 30 min',severity:'critical',description:'Rapid HR increase signals accelerating heat strain. Phase 1 dynamic lag detected.'},
+        {feature:'Low acclimatisation',value:'10 days',severity:'high',description:'Worker has not built heat tolerance. Extra caution needed.'}
+      ]
+    }
+  }
+};
+
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+let state = {
+  workerName: 'Rajan Kumar',
+  hydration: 2,
+  currentScenario: null,
+  onboarded: false,
+};
+
+// ══════════════════════════════════════════════════════════════
+// ONBOARDING
+// ══════════════════════════════════════════════════════════════
+function selectHydration(val) {
+  state.hydration = val;
+  document.querySelectorAll('.hydration-btn').forEach(b => {
+    b.classList.toggle('selected', parseInt(b.dataset.val) === val);
+  });
+}
+
+function completeOnboarding() {
+  state.workerName = document.getElementById('inp-name').value || 'Worker';
+  state.onboarded  = true;
+  document.getElementById('screen-onboard').classList.remove('active');
+  document.getElementById('screen-dashboard').classList.add('active');
+  document.getElementById('bottom-nav').style.display = 'flex';
+  loadDemoWorker('danger');
+}
+
+function loadDemoWorker(scenarioKey) {
+  if (!state.onboarded) {
+    completeOnboarding();
+    return;
+  }
+  state.currentScenario = scenarioKey;
+  const sc = SCENARIOS[scenarioKey];
+  const p  = sc.prediction;
+
+  // Update all scenario buttons
+  document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('btn-' + scenarioKey);
+  if (btn) btn.classList.add('active');
+
+  // Set worker name from scenario (keep onboarded name for personal scenarios)
+  const displayName = state.workerName || sc.workerName;
+
+  // Header
+  document.getElementById('dash-name').textContent    = displayName;
+  document.getElementById('dash-persona').textContent = p.persona_name;
+
+  // Risk card
+  const card = document.getElementById('risk-card');
+  card.style.background  = p.risk_color + '20';
+  card.className = 'risk-card fade-in';
+  document.getElementById('risk-emoji').textContent   = p.risk_emoji;
+  document.getElementById('risk-class').textContent   = p.predicted_class.toUpperCase();
+  document.getElementById('risk-class').style.color   = p.risk_color;
+  document.getElementById('risk-message').textContent = p.risk_message;
+  document.getElementById('risk-score').textContent   = Math.round(p.risk_score);
+  document.getElementById('risk-bar').style.width     = p.risk_score + '%';
+  document.getElementById('risk-bar').style.background = p.risk_color;
+
+  // Alert banner
+  const banner = document.getElementById('alert-banner');
+  if (p.alert_fires) {
+    banner.style.display     = 'flex';
+    banner.style.background  = p.risk_color + '18';
+    banner.style.border      = '1.5px solid ' + p.risk_color + '60';
+    document.getElementById('alert-icon').textContent  = '🚨';
+    document.getElementById('alert-title').textContent = 'Action Required Now';
+    document.getElementById('alert-body').textContent  = p.risk_action;
+    document.getElementById('alert-title').style.color = p.risk_color;
+  } else {
+    banner.style.display     = 'flex';
+    banner.style.background  = '#D5F5E318';
+    banner.style.border      = '1.5px solid #27AE6060';
+    document.getElementById('alert-icon').textContent  = '✅';
+    document.getElementById('alert-title').textContent = 'No Alert — Safe to Continue';
+    document.getElementById('alert-body').textContent  = p.risk_action;
+    document.getElementById('alert-title').style.color = '#1E8449';
+  }
+
+  // Metrics
+  document.getElementById('m-hr').innerHTML    = Math.round(138 * (scenarioKey==='safe'?0.594:scenarioKey==='moderate'?0.76:1)) + '<span class="metric-unit">bpm</span>';
+  document.getElementById('m-tre').innerHTML   = p.core_temp_estimate + '<span class="metric-unit">°C</span>';
+  document.getElementById('m-hi').innerHTML    = p.heat_index + '<span class="metric-unit">°C</span>';
+  document.getElementById('m-sr').innerHTML    = p.sweat_rate_estimate + '<span class="metric-unit">g/hr</span>';
+  const trendClass = p.hr_trajectory > 5 ? 'trend-up' : p.hr_trajectory > 0 ? 'trend-stable' : 'trend-down';
+  const trendArrow = p.hr_trajectory > 5 ? '↑' : p.hr_trajectory > 0 ? '→' : '↓';
+  document.getElementById('m-hr-trend').className = 'metric-trend ' + trendClass;
+  document.getElementById('m-hr-trend').textContent = trendArrow + ' ' + (p.hr_trajectory > 0 ? '+' : '') + p.hr_trajectory + ' bpm in 30min';
+  document.getElementById('m-tre-trend').className = p.core_temp_estimate >= 38.5 ? 'metric-trend trend-up' : 'metric-trend trend-stable';
+  document.getElementById('m-tre-trend').textContent = p.core_temp_estimate >= 38.5 ? '↑ Above danger limit' : p.core_temp_estimate >= 38.0 ? '↑ Elevated' : '→ Normal range';
+
+  // Temp-to-peak card
+  const ttpCard = document.getElementById('ttp-card');
+  ttpCard.style.background = p.alert_fires ? '#1A1A2E' : '#2D5A3D';
+  document.getElementById('ttp-value').textContent = p.time_to_peak_minutes;
+  document.getElementById('ttp-icon').textContent  = p.alert_fires ? '⚠️' : '✅';
+
+  // Probability bars
+  const probColors = {Low:'#27AE60',Moderate:'#F39C12',High:'#E67E22',Critical:'#C0392B'};
+  let barsHtml = '';
+  for (const [cls, prob] of Object.entries(p.probabilities)) {
+    const pct = (prob * 100).toFixed(2);
+    barsHtml += `<div class="prob-row">
+      <div class="prob-header">
+        <span class="prob-label">${cls}</span>
+        <span class="prob-pct">${pct}%</span>
+      </div>
+      <div class="prob-bar-bg">
+        <div class="prob-bar" style="width:${Math.max(pct,0.3)}%;background:${probColors[cls]}"></div>
+      </div>
+    </div>`;
+  }
+  document.getElementById('prob-bars').innerHTML = barsHtml;
+
+  // Risk factors
+  const factorsSection = document.getElementById('factors-section');
+  if (p.top_risk_factors.length === 0) {
+    factorsSection.style.display = 'none';
+  } else {
+    factorsSection.style.display = 'block';
+    let factHtml = '';
+    for (const f of p.top_risk_factors) {
+      factHtml += `<div class="factor-card ${f.severity} fade-in">
+        <div class="factor-name">${f.feature}</div>
+        <div class="factor-value" style="color:${f.severity==='critical'?'var(--red)':'var(--orange)'}">${f.value}</div>
+        <div class="factor-desc">${f.description}</div>
+      </div>`;
+    }
+    document.getElementById('factors-list').innerHTML = factHtml;
+  }
+
+  // Profile screen
+  document.getElementById('prof-name').textContent    = displayName;
+  document.getElementById('prof-persona').textContent = p.persona_name;
+  document.getElementById('prof-age').textContent     = sc.age + ' years';
+  document.getElementById('prof-bmi').textContent     = sc.bmi + ' kg/m²';
+  document.getElementById('prof-accl').textContent    = sc.accl + ' days';
+  document.getElementById('prof-cluster').textContent = p.cluster_id;
+  document.getElementById('prof-vuln').textContent    = p.vulnerability_score.toFixed(4);
+  document.getElementById('prof-mult').textContent    = '×' + p.adaptive_alert_multiplier.toFixed(2);
+  const threshPct = Math.round(p.threshold_used * 100);
+  document.getElementById('prof-thresh').textContent  = threshPct + '%';
+  document.getElementById('prof-thresh').style.color  = p.alert_fires ? 'var(--red)' : 'var(--green)';
+  document.getElementById('prof-thresh-note').innerHTML =
+    p.adaptive_alert_multiplier < 1.0
+      ? `Your alert fires <strong>earlier than the baseline</strong> because your worker profile shows lower heat tolerance. This gives you more time to act safely.`
+      : `Your alert fires <strong>later than the baseline</strong> because your strong heat acclimatisation means you tolerate higher heat loads safely.`;
+
+  // Demo panel
+  document.getElementById('raw-class').textContent  = p.predicted_class;
+  document.getElementById('raw-class').style.color  = p.risk_color;
+  document.getElementById('raw-pcrit').textContent  = (p.probabilities.Critical * 100).toFixed(2) + '%';
+  document.getElementById('raw-phigh').textContent  = (p.probabilities.High * 100).toFixed(2) + '%';
+  document.getElementById('raw-thresh').textContent = (p.threshold_used * 100).toFixed(1) + '%';
+  document.getElementById('raw-alert').textContent  = p.alert_fires ? '✓ YES' : '✗ NO';
+  document.getElementById('raw-alert').style.color  = p.alert_fires ? 'var(--red)' : 'var(--green)';
+  document.getElementById('raw-persona').textContent = p.persona_name;
+  document.getElementById('raw-vuln').textContent   = p.vulnerability_score.toFixed(4);
+}
+
+// ══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════════
+function showScreen(name) {
+  const screens = ['dashboard','history','profile','supervisor'];
+  screens.forEach(s => {
+    document.getElementById('screen-' + s).classList.remove('active');
+    document.getElementById('nav-' + s).classList.remove('active');
+  });
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT — start on onboarding, auto-load danger after brief delay
+// ══════════════════════════════════════════════════════════════
+window.onload = function() {
+  document.getElementById('bottom-nav').style.display = 'none';
+  // Auto-demo after 1.2s for presentation purposes
+  setTimeout(() => {
+    state.onboarded = true;
+    document.getElementById('screen-onboard').classList.remove('active');
+    document.getElementById('screen-dashboard').classList.add('active');
+    document.getElementById('bottom-nav').style.display = 'flex';
+    loadDemoWorker('danger');
+  }, 1200);
+};
+</script>
+</body>
+</html>
