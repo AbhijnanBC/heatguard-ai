@@ -103,7 +103,7 @@ The clustering stage isn't cosmetic — `cluster_id` ranks **above individual en
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/<your-username>/heatstroke_ai.git
+git clone https://github.com/AbhijnanBC/heatstroke_ai.git
 cd heatstroke_ai
 pip install -r requirements.txt
 
